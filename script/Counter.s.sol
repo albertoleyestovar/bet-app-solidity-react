@@ -2,17 +2,18 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
+import {MyFirstToken} from "../src/Counter.sol";
 
 contract CounterScript is Script {
-    Counter public counter;
+    MyFirstToken public counter;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        counter = new Counter();
+        // account 1
+        counter = new MyFirstToken(0xD12A3f512Dd71eA1b1421C01c9e9927c05681FdB);
 
         vm.stopBroadcast();
     }
