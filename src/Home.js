@@ -96,7 +96,6 @@ export function Home() {
         if (tokenContract) {
             try {
                 const allowance = await tokenContract.allowance(account, betContractAddress);
-                console.log("allowance", allowance);
                 if (allowance.toString() > 0)
                     setIsApproved(true);
             } catch (error) {

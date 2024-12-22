@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper, TableBody } from '@mui/material';
 import { useWalletState } from "./WalletContext";
 import { getBetHistory } from './Graph';
+import { useNavigate } from 'react-router-dom';
+import Pagination from '@mui/material/Pagination';
+import Stack from '@mui/material/Stack';
 import './App.css';
 
+const itemsPerPage = 5;
 export function History() {
     const [checkedItems, setCheckedItems] = useState({
         notClaimed: false,
@@ -11,35 +15,41 @@ export function History() {
         joined: false,
     });
     const [roundList, setRoundList] = useState([]);
-
     const { betContract, account, roundId } = useWalletState();
 
+    const [totalPageCount, setTotalPageCount] = useState(0);
+    const [pageIndex, setPageIndex] = useState(1);
+    const navigate = useNavigate();
+
     const calcRewardAmount = (betPlaceds, betAmount, winValue) => {
-        console.log(winValue, betPlaceds.filter((b) => b.betValue == winValue));
         const totalBetAmount = betPlaceds.reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0);
         const totalWinAmount = betPlaceds.filter((b) => b._betValue == winValue).reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0);
-        console.log(totalBetAmount, totalWinAmount, betAmount);
         const rewardAmount = totalWinAmount == 0 ? 0 : parseInt(parseInt(betAmount) * totalBetAmount * 0.95 / totalWinAmount);
         return rewardAmount;
 
     }
 
+    const onClaim = async (_roundId) => {
+        if (betContract) {
+            const res = await betContract.onClaim(_roundId);
+        }
+    }
     const getHistory = async () => {
         const res = await getBetHistory(account);
         const betPlaceds = res.betPlaceds;
         const claimedRewards = res.claimedRewards;
         const betRoundFinisheds = res.betRoundFinisheds;
         const list = [];
-        for (let i = 1; i <= roundId - 1; i++) {
-            console.log(account);
+        for (let i = 1; i <= roundId; i++) {
             const roundBettingInfo = betPlaceds.filter((b) => b._roundId == i && b._address == account)[0] || null;
-            const claimInfo = claimedRewards.filter((c) => c._roundId === i)[0] || null;
+            const claimInfo = claimedRewards.filter((c) => c._roundId == i)[0] || null;
             const betFinishInfo = betRoundFinisheds.filter((c) => c._roundId == i)[0] || null;
-            console.log(roundBettingInfo);
-            let rewardAmount = 0;
-            if (!roundBettingInfo) rewardAmount = "XX";
+
+            // calc rewardAmount
+            let rewardAmount = "XXX";
+            if (!roundBettingInfo) rewardAmount = "XXX";
             if (claimInfo) rewardAmount = claimInfo._rewardAmount;
-            if (roundBettingInfo && !claimInfo) {
+            if (roundBettingInfo && !claimInfo && betFinishInfo) {
                 if (betFinishInfo._winningValue != roundBettingInfo._betValue) rewardAmount = 0;
                 else {
                     rewardAmount = calcRewardAmount(betPlaceds.filter((b) => b._roundId == i), roundBettingInfo._betAmount, betFinishInfo._winningValue);
@@ -51,10 +61,11 @@ export function History() {
                 betValue: roundBettingInfo ? roundBettingInfo._betValue : "XX",
                 isClaimed: claimInfo ? true : false,
                 rewardAmount,
-                isLost: roundBettingInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
+                isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
                 isJoined: roundBettingInfo !== null
             });
             setRoundList(list);
+            setTotalPageCount(Math.ceil(roundId / itemsPerPage));
         }
     }
     useEffect(() => {
@@ -62,6 +73,11 @@ export function History() {
             getHistory();
         }
     }, []);
+
+    // Handle page change
+    const handlePageChange = (event, value) => {
+        setPageIndex(value);
+    };
 
     const handleSubmit = () => {
         alert('Selected options: ' + JSON.stringify(checkedItems));
@@ -129,9 +145,10 @@ export function History() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {roundList.map((r) => {
+                                                {roundList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
-                                                    const allowClaim = r.isJoined && !r.isLost && !r.isClaimed;
+                                                    const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
+                                                    const isCurrentRound = r.roundId == roundId;
                                                     return (
                                                         <TableRow>
                                                             <TableCell>{r.roundId}</TableCell>
@@ -140,9 +157,10 @@ export function History() {
                                                                 Bet Value: {r.betValue}</TableCell>
                                                             <TableCell align="left">Reward Amount: {r.rewardAmount}</TableCell>
                                                             <TableCell align="left">
-                                                                {allowClaim && <Button variant="contained" sx={{ marginTop: 2 }} onClick={handleSubmit}>Claim</Button>}
+                                                                {allowClaim && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
                                                                 {r.isClaimed && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }} onClick={handleSubmit}>Claimed</Button>}
-                                                                {!r.isJoined && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
+                                                                {!r.isJoined && !isCurrentRound && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
+                                                                {!r.isJoined && isCurrentRound && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { navigate('/') }}>Join</Button>}
                                                                 {r.isLost && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Lost</Button>}
                                                             </TableCell>
                                                         </TableRow>
@@ -151,6 +169,18 @@ export function History() {
                                             </TableBody>
                                         </Table>
                                     </TableContainer>
+                                    <div>
+                                        <Stack spacing={2} alignItems="center">
+                                            <Pagination
+                                                count={totalPageCount}
+                                                page={pageIndex}
+                                                onChange={handlePageChange}
+                                                color="primary"
+                                                shape="rounded"
+                                                size="large"
+                                            />
+                                        </Stack>
+                                    </div>
                                 </FormGroup>
                             </CardContent>
                         </Card>
