@@ -1,40 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button, Typography, Card, CardContent, Grid, Box, Select, MenuItem, FormControl, InputLabel, TextField } from '@mui/material';
 import { ethers } from "ethers";
+import { useWalletState } from "./WalletContext";
 import { useNavigate } from 'react-router-dom';
 import betContractABI from './bet-abi.json';
 import tokenContractABI from './token-abi.json';
+import { getBetInfo } from './Graph';
 
+const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
+const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
+const betValues = [1, 2, 3, 4, 5];
 export function Home() {
     const [isConnected, setIsConnected] = useState(false);
-    const [account, setAccount] = useState(null);
-    const [betContract, setBetContract] = useState(null);
+    const {betContract, setBetContract, account, setAccount, roundId, setRoundId} = useWalletState();
     const [tokenContract, setTokenContract] = useState(null);
     const [betValue, setBetValue] = useState();
     const [betAmount, setBetAmount] = useState();
-    const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
-    const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
-    const betValues = [1, 2, 3, 4, 5];
-    const [roundId, setRoundId] = useState(null);
+    const [isApproved, setIsApproved] = useState(false);
+    const [numJoined, setNumJoined] = useState(0);
+    const [totalDeposit, setTotalDeposit] = useState(0);
+    const [isBetted, setIsBetted] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
         if (betContract && tokenContract) {
-
             // get current round id
             betContract.currentRoundId().then((res) => {
                 setRoundId(res.toString());
             });
-            // getAllowance();
+            getAllowance();
         }
     }, [betContract, tokenContract]);
 
+    const getBettingInformation = () => {
+        getBetInfo(roundId).then((res) => {
+            console.log('bet info', res);
+            const betArr = res.betPlaceds;
+            const userBet = betArr.filter((b) => b._address === account);
+            setNumJoined(betArr.length);
+            let tBetAmount = 0;
+            betArr.map((b) => {
+                tBetAmount += parseInt(b._betAmount);
+            })
+            setTotalDeposit(tBetAmount);
+            if (userBet.length) {
+                setBetValue(userBet[0]._betValue);
+                setBetAmount(userBet[0]._betAmount);
+                setIsBetted(true);
+                setIsApproved(true);
+            }
+        });
+    }
     useEffect(() => {
         // get user bet info
         if (betContract && account) {
-            betContract.getCurrentBetAmount(account).then((res) => {
-                // console.log('user bet amount', res.toString());
-            });
+            getBettingInformation();
         }
     }, [roundId]);
 
@@ -48,9 +68,6 @@ export function Home() {
                 setIsConnected(true);
                 connectBetContract(_signer);
                 connectTokenContract(_signer);
-                // await getCurrentRoundId();
-                // await getAllowance();
-                // await handleTest();
             } catch (error) {
                 console.error(error);
             }
@@ -65,15 +82,25 @@ export function Home() {
         setRoundId(null);
     };
 
+    const placeBet = async () => {
+        if (betContract) {
+            try {
+                await betContract.placeBet(betValue, betAmount);
+                getBettingInformation();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    }
     const getAllowance = async () => {
-        console.log('aaaaaaaa', tokenContract);
         if (tokenContract) {
             try {
-                console.log(account, betContractAddress);
                 const allowance = await tokenContract.allowance(account, betContractAddress);
-                console.log('allowance', allowance);
+                console.log("allowance", allowance);
+                if (allowance.toString() > 0)
+                    setIsApproved(true);
             } catch (error) {
-                console.error('error11111111111', error);
+                console.error('error getAllowance', error);
             }
         }
     }
@@ -106,22 +133,21 @@ export function Home() {
         isConnected ? disConnectWallet() : connectWallet();
     }
 
-    const handleTest = async () => {
-        if (betContract) {
+    function handleClickBetApprove() {
+        if (isApproved) {
+            placeBet();
+        } else {
             try {
-                // const b = await tokenContract.approve(tokenContractAddress, 100);
-                // console.log('approve', b);
-                // console.log(betContract);
-                console.log(betContract);
-                await betContract.placeBet(1, 100);
-                // const ddd = await betContract.getCurrentBetAmount(account);
-                // const ddd = await betContract.currentRoundId();
-                // console.log(ddd);
+                tokenContract.approve(betContractAddress, betAmount).then((res) => {
+                    setIsApproved(true);
+                    console.log(res);
+                });
             } catch (error) {
-                console.error(error);
+                console.log('handleClickBetApprove', error);
             }
         }
     }
+
     return (
         <div className="">
             <Container maxWidth="md" sx={{ paddingTop: 4 }}>
@@ -140,10 +166,10 @@ export function Home() {
                                     Current Round: {roundId}
                                 </Typography>
                                 <Typography variant="h6" gutterBottom>
-                                    Joined: XX members
+                                    Joined: {numJoined} members
                                 </Typography>
                                 <Typography variant="h6" gutterBottom>
-                                    Total Deposits: XX
+                                    Total Deposits: {totalDeposit}
                                 </Typography>
                                 <div className='App'>
                                     <Box mt={2} sx={{
@@ -169,7 +195,7 @@ export function Home() {
                                                 ))}
                                             </Select>
                                             <TextField
-                                                label="Enter amount"
+                                                label=""
                                                 type="number"
                                                 value={betAmount}
                                                 onChange={(e) => { setBetAmount(e.target.value) }}
@@ -177,7 +203,7 @@ export function Home() {
                                                 fullWidth
                                                 sx={{ marginTop: 1 }}
                                             />
-                                            <Button variant="contained" sx={{ marginTop: 1 }} onClick={() => { handleTest() }}>Bet</Button>
+                                            <Button variant="contained" sx={{ marginTop: 1 }} disabled={isApproved && isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>{isApproved ? "Bet" : "Approve"}</Button>
                                         </FormControl>
                                     </Box>
                                 </div>
