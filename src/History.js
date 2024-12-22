@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Button, Typography, Card, CardContent, Grid, Box, Checkbox, FormControlLabel, FormGroup, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import './App.css';
 
 export function History() {
@@ -21,7 +21,7 @@ export function History() {
     };
 
     return (
-        <>
+        <div className='' style={{ maxWidth: "900px", marginLeft: "auto", marginRight: "auto" }}>
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
                 <Typography variant="h4" gutterBottom>
                     History Page
@@ -74,7 +74,7 @@ export function History() {
                                                     <TableCell align="left">#</TableCell>
                                                 </TableRow>
                                             </TableHead>
-                                            
+
                                         </Table>
                                     </TableContainer>
                                 </FormGroup>
@@ -86,6 +86,6 @@ export function History() {
                     </Grid>
                 </Grid>
             </Container>
-        </>
+        </div>
     )
 }
