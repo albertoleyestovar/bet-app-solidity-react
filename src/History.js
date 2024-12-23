@@ -31,7 +31,11 @@ export function History() {
 
     const onClaim = async (_roundId) => {
         if (betContract) {
+            try {
             const res = await betContract.onClaim(_roundId);
+            } catch (error) {
+                console.log(error.message.includes("ACTION_REJECTED"));
+            }
         }
     }
     const getHistory = async () => {

@@ -12,8 +12,7 @@ const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
 const betValues = [1, 2, 3, 4, 5];
 export function Home() {
     const [isConnected, setIsConnected] = useState(false);
-    const {betContract, setBetContract, account, setAccount, roundId, setRoundId} = useWalletState();
-    const [tokenContract, setTokenContract] = useState(null);
+    const {betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId} = useWalletState();
     const [betValue, setBetValue] = useState();
     const [betAmount, setBetAmount] = useState();
     const [isApproved, setIsApproved] = useState(false);
@@ -24,6 +23,7 @@ export function Home() {
 
     useEffect(() => {
         if (betContract && tokenContract) {
+            setIsConnected(true);
             // get current round id
             betContract.currentRoundId().then((res) => {
                 setRoundId(res.toString());

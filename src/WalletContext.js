@@ -8,12 +8,13 @@ export const useWalletState = () => {
 };
 
 export const WalletStateProvider = ({ children }) => {
+    const [tokenContract, setTokenContract] = useState(null);
     const [betContract, setBetContract] = useState(null);
     const [account, setAccount] = useState(null);
     const [roundId, setRoundId] = useState(null);
 
     return (
-        <WalletStateContext.Provider value={{ betContract, setBetContract, account, setAccount, roundId, setRoundId }}>
+        <WalletStateContext.Provider value={{ betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId }}>
             {children}
         </WalletStateContext.Provider>
     );
