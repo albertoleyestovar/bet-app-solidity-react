@@ -15,6 +15,7 @@ export function History() {
         joined: false,
     });
     const [roundList, setRoundList] = useState([]);
+    const [filterList, setFilterList] = useState([]);
     const { betContract, account, roundId } = useWalletState();
 
     const [totalPageCount, setTotalPageCount] = useState(0);
@@ -32,12 +33,13 @@ export function History() {
     const onClaim = async (_roundId) => {
         if (betContract) {
             try {
-            const res = await betContract.onClaim(_roundId);
+                const res = await betContract.onClaim(_roundId);
             } catch (error) {
                 console.log(error.message.includes("ACTION_REJECTED"));
             }
         }
     }
+
     const getHistory = async () => {
         const res = await getBetHistory(account);
         const betPlaceds = res.betPlaceds;
@@ -78,6 +80,13 @@ export function History() {
         }
     }, []);
 
+    useEffect(() => {
+        
+    }, [checkedItems]);
+
+    useEffect(() => {
+        setFilterList(roundList);
+    }, [roundList]);
     // Handle page change
     const handlePageChange = (event, value) => {
         setPageIndex(value);
@@ -105,7 +114,7 @@ export function History() {
                         <Card variant="outlined" sx={{ mt: 2 }}>
                             <CardContent>
                                 <FormGroup sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
-                                    <FormControlLabel
+                                    {1 == 5 && (<><FormControlLabel
                                         control={
                                             <Checkbox
                                                 checked={checkedItems.notClaimed}
@@ -116,28 +125,28 @@ export function History() {
                                         }
                                         label="Not Claimed"
                                     />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={checkedItems.claimed}
-                                                onChange={handleChange}
-                                                name="claimed"
-                                                color="primary"
-                                            />
-                                        }
-                                        label="Claimed"
-                                    />
-                                    <FormControlLabel
-                                        control={
-                                            <Checkbox
-                                                checked={checkedItems.joined}
-                                                onChange={handleChange}
-                                                name="joined"
-                                                color="primary"
-                                            />
-                                        }
-                                        label="Joined"
-                                    />
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={checkedItems.claimed}
+                                                    onChange={handleChange}
+                                                    name="claimed"
+                                                    color="primary"
+                                                />
+                                            }
+                                            label="Claimed"
+                                        />
+                                        <FormControlLabel
+                                            control={
+                                                <Checkbox
+                                                    checked={checkedItems.joined}
+                                                    onChange={handleChange}
+                                                    name="joined"
+                                                    color="primary"
+                                                />
+                                            }
+                                            label="Joined"
+                                        /></>)}
                                     <TableContainer component={Paper}>
                                         <Table sx={{ minWidth: 650 }} aria-label="simple table">
                                             <TableHead>
@@ -149,7 +158,7 @@ export function History() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {roundList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r) => {
+                                                {filterList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
                                                     const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
                                                     const isCurrentRound = r.roundId == roundId;

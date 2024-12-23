@@ -12,10 +12,13 @@ const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
 const betValues = [1, 2, 3, 4, 5];
 export function Home() {
     const [isConnected, setIsConnected] = useState(false);
-    const {betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId} = useWalletState();
+    const { betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId } = useWalletState();
     const [betValue, setBetValue] = useState();
-    const [betAmount, setBetAmount] = useState();
+    const [betAmount, setBetAmount] = useState(0);
+    const [userAllowance, setUserAllowance] = useState(0);
+    const [userBalance, setUserBalance] = useState(0);
     const [isApproved, setIsApproved] = useState(false);
+    const [canApprove, setCanApprove] = useState(false);
     const [numJoined, setNumJoined] = useState(0);
     const [totalDeposit, setTotalDeposit] = useState(0);
     const [isBetted, setIsBetted] = useState(false);
@@ -28,10 +31,37 @@ export function Home() {
             betContract.currentRoundId().then((res) => {
                 setRoundId(res.toString());
             });
+            getBalance();
             getAllowance();
         }
     }, [betContract, tokenContract]);
 
+    useEffect(() => {
+        console.log(userAllowance);
+        if (userAllowance && betAmount && betAmount <= parseInt(userAllowance))
+            setIsApproved(true);
+        else
+            setIsApproved(false);
+        if (betValue > 0 && betAmount > 0) {
+            setCanApprove(true);
+        } else {
+            setCanApprove(false);
+        }
+        if (betAmount > userBalance) setIsBetted(true);
+    }, [betValue, betAmount]);
+
+    const getBalance = () => {
+        if (tokenContract) {
+            try {
+                tokenContract.balanceOf(account).then((res) => {
+                    console.log("balance", res.toString());
+                    setUserBalance(parseInt(res.toString()));
+                })
+            } catch (error) {
+                console.error('error getAllowance', error);
+            }
+        }
+    }
     const getBettingInformation = () => {
         getBetInfo(roundId).then((res) => {
             console.log('bet info', res);
@@ -80,6 +110,10 @@ export function Home() {
         setBetContract(null);
         setTokenContract(null);
         setRoundId(null);
+        setNumJoined(0);
+        setTotalDeposit(0);
+        setBetAmount(0);
+        setBetValue(0);
     };
 
     const placeBet = async () => {
@@ -87,17 +121,28 @@ export function Home() {
             try {
                 await betContract.placeBet(betValue, betAmount);
                 getBettingInformation();
+                setIsBetted(true);
+
             } catch (error) {
                 console.error(error);
             }
         }
     }
+
+    const handleChangeBetAmount = (e) => {
+        // Allow only numbers or empty string
+        const newValue = e.target.value;
+        if (/^\d*$/.test(newValue)) {
+            setBetAmount(newValue);
+        }
+    }
+
     const getAllowance = async () => {
         if (tokenContract) {
             try {
-                const allowance = await tokenContract.allowance(account, betContractAddress);
-                if (allowance.toString() > 0)
-                    setIsApproved(true);
+                const res = await tokenContract.allowance(account, betContractAddress);
+                console.log("allowance", res.toString());
+                setUserAllowance(parseInt(res.toString()));
             } catch (error) {
                 console.error('error getAllowance', error);
             }
@@ -132,15 +177,14 @@ export function Home() {
         isConnected ? disConnectWallet() : connectWallet();
     }
 
-    function handleClickBetApprove() {
+    async function handleClickBetApprove() {
         if (isApproved) {
             placeBet();
         } else {
             try {
-                tokenContract.approve(betContractAddress, betAmount).then((res) => {
-                    setIsApproved(true);
-                    console.log(res);
-                });
+                const res = await tokenContract.approve(betContractAddress, betAmount);
+                setIsApproved(true);
+                console.log(res);
             } catch (error) {
                 console.log('handleClickBetApprove', error);
             }
@@ -197,12 +241,14 @@ export function Home() {
                                                 label=""
                                                 type="number"
                                                 value={betAmount}
-                                                onChange={(e) => { setBetAmount(e.target.value) }}
+                                                onChange={(e) => { handleChangeBetAmount(e); }}
                                                 variant="outlined"
                                                 fullWidth
                                                 sx={{ marginTop: 1 }}
                                             />
-                                            <Button variant="contained" sx={{ marginTop: 1 }} disabled={isApproved && isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>{isApproved ? "Bet" : "Approve"}</Button>
+                                            {isApproved == true ? "sss" : "aaa"}
+                                            {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>Bet</Button>}
+                                            {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
                                         </FormControl>
                                     </Box>
                                 </div>
