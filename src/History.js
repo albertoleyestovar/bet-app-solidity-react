@@ -38,7 +38,7 @@ export function History() {
             try {
                 // console.log(betContract);
                 startLoading();
-                await betContract.onClaim(parseInt(_roundId));                
+                await betContract.onClaim(parseInt(_roundId));
                 await getHistory();
             } catch (error) {
                 stopLoading();
@@ -117,6 +117,7 @@ export function History() {
         <div className='' style={{ maxWidth: "900px", marginLeft: "auto", marginRight: "auto" }}>
             {isLoading && <LoadingSpinner />} {/* Show the loading spinner */}
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
+                <Button variant="contained" sx={{ marginTop: 2, marginBottom: 1 }} onClick={() => { navigate('/') }}>Back</Button>
                 <Typography variant="h4" gutterBottom>
                     History Page
                 </Typography>

@@ -32,9 +32,7 @@ export function Home() {
         if (betContract && tokenContract) {
             setIsConnected(true);
             // get current round id
-            startLoading();
             betContract.currentRoundId().then((res) => {
-                stopLoading();
                 setRoundId(res.toString());
             });
             getBalance();
@@ -44,25 +42,26 @@ export function Home() {
 
     useEffect(() => {
         // console.log(userAllowance);
-        if (userAllowance && betAmount && betAmount <= parseInt(userAllowance))
-            setIsApproved(true);
-        else
-            setIsApproved(false);
-        if (betValue > 0 && betAmount > 0) {
-            setCanApprove(true);
-        } else {
-            setCanApprove(false);
+        if (!betContract) return;
+        if (!isBetted) {
+            if (userAllowance && betAmount && betAmount <= parseInt(userAllowance))
+                setIsApproved(true);
+            else
+                setIsApproved(false);
+            if (betValue > 0 && betAmount > 0) {
+                setCanApprove(true);
+            } else {
+                setCanApprove(false);
+            }
+            if (!isBetted && betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
         }
-        if (!isBetted && betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
     }, [betValue, betAmount]);
 
     const getBalance = () => {
         if (tokenContract) {
             try {
-                startLoading();
                 tokenContract.balanceOf(account).then((res) => {
                     // console.log("balance", res.toString());
-                    stopLoading();
                     setUserBalance(parseInt(res.toString()));
                 })
             } catch (error) {
@@ -104,9 +103,7 @@ export function Home() {
     const connectWallet = async () => {
         if (!isConnected && window.ethereum) {
             try {
-                startLoading();
                 const account = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                stopLoading();
                 setAccount(account[0]);
                 const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
                 const _signer = ethProvider.getSigner();
@@ -161,9 +158,7 @@ export function Home() {
     const getAllowance = async () => {
         if (tokenContract) {
             try {
-                startLoading();
                 const res = await tokenContract.allowance(account, betContractAddress);
-                stopLoading();
                 // console.log("allowance", res.toString());
                 setUserAllowance(parseInt(res.toString()));
             } catch (error) {
@@ -241,12 +236,6 @@ export function Home() {
                                 <Typography variant="h6" gutterBottom>
                                     Total Deposits: {totalDeposit}
                                 </Typography>
-                                <Typography variant="h6" gutterBottom>
-                                    User Balance: {userBalance}
-                                </Typography>
-                                <Typography variant="h6" gutterBottom>
-                                    User Allowance: {userAllowance}
-                                </Typography>
                                 <div className='App'>
                                     <Box mt={2} sx={{
                                         maxWidth: '300px', // 50% of the parent element's width
@@ -262,6 +251,7 @@ export function Home() {
                                                 value={betValue || ''}
                                                 onChange={(e) => { setBetValue(e.target.value) }}
                                                 label="Select a number"
+                                                disabled={isBetted}
                                             >
                                                 {/* Options from 1 to 5 */}
                                                 {betValues.map((value) => (
@@ -277,9 +267,11 @@ export function Home() {
                                                 onChange={(e) => { handleChangeBetAmount(e); }}
                                                 variant="outlined"
                                                 fullWidth
+                                                disabled={isBetted}
                                                 sx={{ marginTop: 1 }}
                                             />
-                                            {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>Bet</Button>}
+                                            <label style={{ textAlign: 'right' }}>Max: {userBalance}</label>
+                                            {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
                                             {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
                                         </FormControl>
                                     </Box>
