@@ -6,12 +6,15 @@ import { useNavigate } from 'react-router-dom';
 import betContractABI from './bet-abi.json';
 import tokenContractABI from './token-abi.json';
 import { getBetInfo } from './Graph';
+import { useLoading } from './LoadingContext'; // Import the useLoading hook
+import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 
 const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
 const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
 const betValues = [1, 2, 3, 4, 5];
 
 export function Home() {
+    const { isLoading, startLoading, stopLoading } = useLoading();
     const [isConnected, setIsConnected] = useState(false);
     const { betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId } = useWalletState();
     const [betValue, setBetValue] = useState();
@@ -29,7 +32,9 @@ export function Home() {
         if (betContract && tokenContract) {
             setIsConnected(true);
             // get current round id
+            startLoading();
             betContract.currentRoundId().then((res) => {
+                stopLoading();
                 setRoundId(res.toString());
             });
             getBalance();
@@ -54,8 +59,10 @@ export function Home() {
     const getBalance = () => {
         if (tokenContract) {
             try {
+                startLoading();
                 tokenContract.balanceOf(account).then((res) => {
                     // console.log("balance", res.toString());
+                    stopLoading();
                     setUserBalance(parseInt(res.toString()));
                 })
             } catch (error) {
@@ -65,6 +72,7 @@ export function Home() {
     }
 
     const getBettingInformation = () => {
+        startLoading();
         getBetInfo(roundId).then((res) => {
             // console.log('bet info', res);
             const betArr = res.betPlaceds;
@@ -74,6 +82,7 @@ export function Home() {
             betArr.map((b) => {
                 tBetAmount += parseInt(b._betAmount);
             })
+
             setTotalDeposit(tBetAmount);
             if (userBet.length) {
                 setBetValue(userBet[0]._betValue);
@@ -81,6 +90,7 @@ export function Home() {
                 setIsBetted(true);
                 setIsApproved(true);
             }
+            stopLoading();
         });
     }
 
@@ -94,7 +104,9 @@ export function Home() {
     const connectWallet = async () => {
         if (!isConnected && window.ethereum) {
             try {
+                startLoading();
                 const account = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                stopLoading();
                 setAccount(account[0]);
                 const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
                 const _signer = ethProvider.getSigner();
@@ -102,6 +114,7 @@ export function Home() {
                 connectBetContract(_signer);
                 connectTokenContract(_signer);
             } catch (error) {
+                // stopLoading();
                 console.error(error);
             }
         }
@@ -117,16 +130,21 @@ export function Home() {
         setTotalDeposit(0);
         setBetAmount(0);
         setBetValue(0);
+        setUserAllowance(0);
+        setUserBalance(0);
     };
 
     const placeBet = async () => {
         if (betContract) {
             try {
+                startLoading();
                 await betContract.placeBet(betValue, betAmount);
+                stopLoading();
                 getBettingInformation();
                 setIsBetted(true);
 
             } catch (error) {
+                stopLoading();
                 console.error(error);
             }
         }
@@ -143,7 +161,9 @@ export function Home() {
     const getAllowance = async () => {
         if (tokenContract) {
             try {
+                startLoading();
                 const res = await tokenContract.allowance(account, betContractAddress);
+                stopLoading();
                 // console.log("allowance", res.toString());
                 setUserAllowance(parseInt(res.toString()));
             } catch (error) {
@@ -185,10 +205,13 @@ export function Home() {
             placeBet();
         } else {
             try {
+                startLoading();
                 const res = await tokenContract.approve(betContractAddress, betAmount);
+                stopLoading();
                 setIsApproved(true);
                 // console.log(res);
             } catch (error) {
+                stopLoading();
                 console.log('handleClickBetApprove', error);
             }
         }
@@ -196,6 +219,7 @@ export function Home() {
 
     return (
         <div className="">
+            {isLoading && <LoadingSpinner />} {/* Show the loading spinner */}
             <Container maxWidth="md" sx={{ paddingTop: 4 }}>
                 <Typography variant="h3" align="center" gutterBottom>
                     Round Information

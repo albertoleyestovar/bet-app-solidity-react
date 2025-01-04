@@ -5,10 +5,13 @@ import { getBetHistory } from './Graph';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
+import { useLoading } from './LoadingContext'; // Import the useLoading hook
+import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 import './App.css';
 
 const itemsPerPage = 5;
 export function History() {
+    const { isLoading, startLoading, stopLoading } = useLoading();
     const [checkedItems, setCheckedItems] = useState({
         notClaimed: false,
         claimed: false,
@@ -34,9 +37,11 @@ export function History() {
         if (betContract) {
             try {
                 // console.log(betContract);
-                const res = await betContract.onClaim(parseInt(_roundId));
+                startLoading();
+                await betContract.onClaim(parseInt(_roundId));                
                 await getHistory();
             } catch (error) {
+                stopLoading();
                 console.log(error);
                 // console.log(error.message.includes("ACTION_REJECTED"));
             }
@@ -44,7 +49,9 @@ export function History() {
     }
 
     const getHistory = async () => {
+        startLoading();
         const res = await getBetHistory(account);
+        stopLoading();
         const betPlaceds = res.betPlaceds;
         const claimedRewards = res.claimedRewards;
         const betRoundFinisheds = res.betRoundFinisheds;
@@ -108,6 +115,7 @@ export function History() {
 
     return (
         <div className='' style={{ maxWidth: "900px", marginLeft: "auto", marginRight: "auto" }}>
+            {isLoading && <LoadingSpinner />} {/* Show the loading spinner */}
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
                 <Typography variant="h4" gutterBottom>
                     History Page
