@@ -10,6 +10,8 @@ import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 import './App.css';
 
 const itemsPerPage = 5;
+const multi = 1000000;
+
 export function History() {
     const { isLoading, startLoading, stopLoading } = useLoading();
     const [checkedItems, setCheckedItems] = useState({
@@ -62,8 +64,8 @@ export function History() {
             const betFinishInfo = betRoundFinisheds.filter((c) => c._roundId == i)[0] || null;
 
             // calc rewardAmount
-            let rewardAmount = "XXX";
-            if (!roundBettingInfo) rewardAmount = "XXX";
+            let rewardAmount = 0;
+            if (!roundBettingInfo) rewardAmount = 0;
             if (claimInfo) rewardAmount = claimInfo._rewardAmount;
             if (roundBettingInfo && !claimInfo && betFinishInfo) {
                 if (betFinishInfo._winningValue != roundBettingInfo._betValue) rewardAmount = 0;
@@ -73,17 +75,22 @@ export function History() {
             }
             list.push({
                 roundId: i,
-                betAmount: roundBettingInfo ? roundBettingInfo._betAmount : "XXX",
-                betValue: roundBettingInfo ? roundBettingInfo._betValue : "XX",
-                isClaimed: claimInfo ? true : false,
+                betAmount: roundBettingInfo ? roundBettingInfo._betAmount : 0,
+                betValue: roundBettingInfo ? roundBettingInfo._betValue : 0,
+                isClaimed: rewardAmount > 0 ? (claimInfo ? true : false) : null,
                 rewardAmount,
                 isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
                 isJoined: roundBettingInfo !== null
             });
+            console.log(list);
             setRoundList(list);
-            setTotalPageCount(Math.ceil(roundId / itemsPerPage));
         }
     }
+
+    useEffect(() => {
+        setTotalPageCount(Math.ceil(filterList.length / itemsPerPage));
+    }, [filterList]);
+
     useEffect(() => {
         if (betContract) {
             getHistory();
@@ -91,7 +98,17 @@ export function History() {
     }, []);
 
     useEffect(() => {
-
+        if (!checkedItems.notClaimed && !checkedItems.claimed && !checkedItems.joined) {
+            setFilterList(roundList);
+            return;
+        }
+        const list = roundList.filter((r) => {
+            if (checkedItems.notClaimed && r.isClaimed == false) return true;
+            if (checkedItems.claimed && r.isClaimed == true) return true;
+            if (checkedItems.joined && r.isJoined) return true;
+            return false;
+        });
+        setFilterList(list);
     }, [checkedItems]);
 
     useEffect(() => {
@@ -111,6 +128,7 @@ export function History() {
             ...checkedItems,
             [event.target.name]: event.target.checked,
         });
+        // console.log(checkedItems);
     };
 
     return (
@@ -126,7 +144,7 @@ export function History() {
                         <Card variant="outlined" sx={{ mt: 2 }}>
                             <CardContent>
                                 <FormGroup sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
-                                    {1 == 5 && (<><FormControlLabel
+                                    {1 == 1 && (<><FormControlLabel
                                         control={
                                             <Checkbox
                                                 checked={checkedItems.notClaimed}
@@ -178,9 +196,9 @@ export function History() {
                                                         <TableRow key={index}>
                                                             <TableCell>{r.roundId}</TableCell>
                                                             <TableCell align="left">
-                                                                Bet Amount: {r.betAmount}<br />
+                                                                Bet Amount: {parseFloat(r.betAmount / multi)}<br />
                                                                 Bet Value: {r.betValue}</TableCell>
-                                                            <TableCell align="left">Reward Amount: {r.rewardAmount}</TableCell>
+                                                            <TableCell align="left">Reward Amount: {parseFloat(r.rewardAmount / multi)}</TableCell>
                                                             <TableCell align="left">
                                                                 {allowClaim && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
                                                                 {r.isClaimed && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }} onClick={handleSubmit}>Claimed</Button>}

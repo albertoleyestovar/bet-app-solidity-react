@@ -12,10 +12,12 @@ import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
 const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
 const betValues = [1, 2, 3, 4, 5];
+const multi = 1000000;
 
 export function Home() {
     const { isLoading, startLoading, stopLoading } = useLoading();
     const [isConnected, setIsConnected] = useState(false);
+    const [amountOverflow, setAmountOverflow] = useState(false);
     const { betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId } = useWalletState();
     const [betValue, setBetValue] = useState();
     const [betAmount, setBetAmount] = useState(0);
@@ -32,11 +34,11 @@ export function Home() {
         if (betContract && tokenContract) {
             setIsConnected(true);
             // get current round id
+            startLoading();
             betContract.currentRoundId().then((res) => {
+                stopLoading();
                 setRoundId(res.toString());
             });
-            getBalance();
-            getAllowance();
         }
     }, [betContract, tokenContract]);
 
@@ -44,7 +46,7 @@ export function Home() {
         // console.log(userAllowance);
         if (!betContract) return;
         if (!isBetted) {
-            if (userAllowance && betAmount && betAmount <= parseInt(userAllowance))
+            if (userAllowance && betAmount && betAmount <= parseFloat(userAllowance))
                 setIsApproved(true);
             else
                 setIsApproved(false);
@@ -53,7 +55,7 @@ export function Home() {
             } else {
                 setCanApprove(false);
             }
-            if (!isBetted && betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
+            if (!isBetted && betAmount > userBalance) { setAmountOverflow(true); } else { setAmountOverflow(false); }
         }
     }, [betValue, betAmount]);
 
@@ -62,7 +64,7 @@ export function Home() {
             try {
                 tokenContract.balanceOf(account).then((res) => {
                     // console.log("balance", res.toString());
-                    setUserBalance(parseInt(res.toString()));
+                    setUserBalance(parseFloat(parseInt(res.toString()) / multi));
                 })
             } catch (error) {
                 console.error('error getAllowance', error);
@@ -82,13 +84,15 @@ export function Home() {
                 tBetAmount += parseInt(b._betAmount);
             })
 
-            setTotalDeposit(tBetAmount);
+            setTotalDeposit(tBetAmount / multi);
             if (userBet.length) {
                 setBetValue(userBet[0]._betValue);
-                setBetAmount(userBet[0]._betAmount);
+                setBetAmount(parseFloat(parseInt(userBet[0]._betAmount) / multi));
                 setIsBetted(true);
                 setIsApproved(true);
             }
+            getBalance();
+            getAllowance();
             stopLoading();
         });
     }
@@ -103,6 +107,7 @@ export function Home() {
     const connectWallet = async () => {
         if (!isConnected && window.ethereum) {
             try {
+                startLoading();
                 const account = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 setAccount(account[0]);
                 const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
@@ -110,6 +115,7 @@ export function Home() {
                 setIsConnected(true);
                 connectBetContract(_signer);
                 connectTokenContract(_signer);
+                stopLoading();
             } catch (error) {
                 // stopLoading();
                 console.error(error);
@@ -135,10 +141,12 @@ export function Home() {
         if (betContract) {
             try {
                 startLoading();
-                await betContract.placeBet(betValue, betAmount);
+                await betContract.placeBet(betValue, parseInt(betAmount * multi));
                 stopLoading();
                 getBettingInformation();
                 setIsBetted(true);
+                setIsApproved(true);
+                setUserBalance(userBalance - betAmount);
 
             } catch (error) {
                 stopLoading();
@@ -150,7 +158,7 @@ export function Home() {
     const handleChangeBetAmount = (e) => {
         // Allow only numbers or empty string
         const newValue = e.target.value;
-        if (/^\d*$/.test(newValue)) {
+        if (newValue === '' || /^-?\d*\.?\d+$/.test(newValue)) {
             setBetAmount(newValue);
         }
     }
@@ -160,7 +168,7 @@ export function Home() {
             try {
                 const res = await tokenContract.allowance(account, betContractAddress);
                 // console.log("allowance", res.toString());
-                setUserAllowance(parseInt(res.toString()));
+                setUserAllowance(parseFloat(parseInt(res.toString()) / multi));
             } catch (error) {
                 console.error('error getAllowance', error);
             }
@@ -201,7 +209,7 @@ export function Home() {
         } else {
             try {
                 startLoading();
-                const res = await tokenContract.approve(betContractAddress, betAmount);
+                await tokenContract.approve(betContractAddress, parseInt(betAmount * multi));
                 stopLoading();
                 setIsApproved(true);
                 // console.log(res);
@@ -271,8 +279,12 @@ export function Home() {
                                                 sx={{ marginTop: 1 }}
                                             />
                                             <label style={{ textAlign: 'right' }}>Max: {userBalance}</label>
-                                            {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
-                                            {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                            {!isBetted && <>
+                                                {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
+                                                {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={(isBetted && !amountOverflow) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
+                                                {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                            </>}
+                                            {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}  
                                         </FormControl>
                                     </Box>
                                 </div>

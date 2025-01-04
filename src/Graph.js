@@ -1,7 +1,7 @@
 import { gql, GraphQLClient } from 'graphql-request';
 import axios from 'axios';
 
-const API_ENDPOINT = "https://4318-146-185-26-150.ngrok-free.app";
+const API_ENDPOINT = "https://19c7-146-185-26-150.ngrok-free.app";
 
 export const getBetInfo = async (_roundId) => {
     try {
@@ -10,7 +10,6 @@ export const getBetInfo = async (_roundId) => {
         });
         return res.data;
     } catch (error) {
-        // return { betPlaceds: [], betRoundFinisheds: [] };
         console.log(error);
     }
 }
@@ -19,7 +18,7 @@ export const getBetHistory = async (_address) => {
     const res = await axios.post(API_ENDPOINT + "/bet-history", {
         address: _address
     });
-    console.log(res.data);
+    // console.log(res.data);
     return res.data;
 }
 // const endPoint = "https://api.studio.thegraph.com/query/98873/bet-graph-test/version/latest";
