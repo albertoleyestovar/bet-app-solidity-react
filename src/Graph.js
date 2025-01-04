@@ -42,6 +42,6 @@ export const getBetHistory = async (_address) => {
             }
         }`;
     const response = await client.request(query);
-    console.log(response);
+    // console.log(response);
     return response;
 }

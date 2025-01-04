@@ -33,7 +33,7 @@ export function History() {
     const onClaim = async (_roundId) => {
         if (betContract) {
             try {
-                console.log(betContract);
+                // console.log(betContract);
                 const res = await betContract.onClaim(parseInt(_roundId));
                 await getHistory();
             } catch (error) {
@@ -161,12 +161,12 @@ export function History() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {filterList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r) => {
+                                                {filterList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r, index) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
                                                     const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
                                                     const isCurrentRound = r.roundId == roundId;
                                                     return (
-                                                        <TableRow>
+                                                        <TableRow key={index}>
                                                             <TableCell>{r.roundId}</TableCell>
                                                             <TableCell align="left">
                                                                 Bet Amount: {r.betAmount}<br />

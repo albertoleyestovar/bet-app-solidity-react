@@ -10,6 +10,7 @@ import { getBetInfo } from './Graph';
 const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
 const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
 const betValues = [1, 2, 3, 4, 5];
+
 export function Home() {
     const [isConnected, setIsConnected] = useState(false);
     const { betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId } = useWalletState();
@@ -37,7 +38,7 @@ export function Home() {
     }, [betContract, tokenContract]);
 
     useEffect(() => {
-        console.log(userAllowance);
+        // console.log(userAllowance);
         if (userAllowance && betAmount && betAmount <= parseInt(userAllowance))
             setIsApproved(true);
         else
@@ -47,14 +48,14 @@ export function Home() {
         } else {
             setCanApprove(false);
         }
-        if (betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
+        if (!isBetted && betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
     }, [betValue, betAmount]);
 
     const getBalance = () => {
         if (tokenContract) {
             try {
                 tokenContract.balanceOf(account).then((res) => {
-                    console.log("balance", res.toString());
+                    // console.log("balance", res.toString());
                     setUserBalance(parseInt(res.toString()));
                 })
             } catch (error) {
@@ -62,9 +63,10 @@ export function Home() {
             }
         }
     }
+
     const getBettingInformation = () => {
         getBetInfo(roundId).then((res) => {
-            console.log('bet info', res);
+            // console.log('bet info', res);
             const betArr = res.betPlaceds;
             const userBet = betArr.filter((b) => b._address === account);
             setNumJoined(betArr.length);
@@ -81,6 +83,7 @@ export function Home() {
             }
         });
     }
+
     useEffect(() => {
         // get user bet info
         if (betContract && account) {
@@ -141,7 +144,7 @@ export function Home() {
         if (tokenContract) {
             try {
                 const res = await tokenContract.allowance(account, betContractAddress);
-                console.log("allowance", res.toString());
+                // console.log("allowance", res.toString());
                 setUserAllowance(parseInt(res.toString()));
             } catch (error) {
                 console.error('error getAllowance', error);
@@ -184,7 +187,7 @@ export function Home() {
             try {
                 const res = await tokenContract.approve(betContractAddress, betAmount);
                 setIsApproved(true);
-                console.log(res);
+                // console.log(res);
             } catch (error) {
                 console.log('handleClickBetApprove', error);
             }
@@ -214,12 +217,12 @@ export function Home() {
                                 <Typography variant="h6" gutterBottom>
                                     Total Deposits: {totalDeposit}
                                 </Typography>
-                                {/* <Typography variant="h6" gutterBottom>
+                                <Typography variant="h6" gutterBottom>
                                     User Balance: {userBalance}
                                 </Typography>
                                 <Typography variant="h6" gutterBottom>
                                     User Allowance: {userAllowance}
-                                </Typography> */}
+                                </Typography>
                                 <div className='App'>
                                     <Box mt={2} sx={{
                                         maxWidth: '300px', // 50% of the parent element's width
