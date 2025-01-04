@@ -104,6 +104,14 @@ export function Home() {
         }
     }, [roundId]);
 
+    const handleNetworkChanged = (networkId) => {
+        console.log("Network changed to:", networkId);
+    }
+
+    if (window.ethereum) {
+        window.ethereum.on("chainChanged", handleNetworkChanged);
+    }
+
     const connectWallet = async () => {
         if (!isConnected && window.ethereum) {
             try {
@@ -143,7 +151,7 @@ export function Home() {
                 startLoading();
                 await betContract.placeBet(betValue, parseInt(betAmount * multi));
                 stopLoading();
-                getBettingInformation();
+                setTimeout(getBettingInformation(), 2000); //
                 setIsBetted(true);
                 setIsApproved(true);
                 setUserBalance(userBalance - betAmount);
@@ -231,7 +239,7 @@ export function Home() {
                     <Grid item xs={12} sm={12} md={12}>
                         <div style={{ textAlign: "right" }}>
                             {isConnected && (<Button sx={{ mr: 2 }} variant="contained" onClick={() => { navigate('/history') }}>History</Button>)}
-                            <Button sx={{ mr: 2 }} variant="contained" onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>
+
                         </div>
                         <Card variant="outlined" sx={{ mt: 2 }} style={{ textAlign: "center" }}>
                             <CardContent>
@@ -279,12 +287,16 @@ export function Home() {
                                                 sx={{ marginTop: 1 }}
                                             />
                                             <label style={{ textAlign: 'right' }}>Max: {userBalance}</label>
-                                            {!isBetted && <>
-                                                {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
-                                                {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={(isBetted && !amountOverflow) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
-                                                {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                            {betContract && <>
+                                                {!isBetted && <>
+                                                    {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
+                                                    {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={(isBetted && !amountOverflow) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
+                                                    {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                                </>}
+                                                {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}
                                             </>}
-                                            {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}  
+                                            {!betContract && <Button 
+                                             variant="contained" sx={{ marginTop: 1 }} onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>}
                                         </FormControl>
                                     </Box>
                                 </div>

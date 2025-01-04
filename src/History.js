@@ -82,7 +82,6 @@ export function History() {
                 isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
                 isJoined: roundBettingInfo !== null
             });
-            console.log(list);
             setRoundList(list);
         }
     }
