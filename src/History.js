@@ -33,9 +33,12 @@ export function History() {
     const onClaim = async (_roundId) => {
         if (betContract) {
             try {
-                const res = await betContract.onClaim(_roundId);
+                console.log(betContract);
+                const res = await betContract.onClaim(parseInt(_roundId));
+                await getHistory();
             } catch (error) {
-                console.log(error.message.includes("ACTION_REJECTED"));
+                console.log(error);
+                // console.log(error.message.includes("ACTION_REJECTED"));
             }
         }
     }
@@ -81,7 +84,7 @@ export function History() {
     }, []);
 
     useEffect(() => {
-        
+
     }, [checkedItems]);
 
     useEffect(() => {

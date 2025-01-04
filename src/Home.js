@@ -47,7 +47,7 @@ export function Home() {
         } else {
             setCanApprove(false);
         }
-        if (betAmount > userBalance) setIsBetted(true);
+        if (betAmount > userBalance) { setIsApproved(true); setIsBetted(true); } else { setIsBetted(false); }
     }, [betValue, betAmount]);
 
     const getBalance = () => {
@@ -214,6 +214,12 @@ export function Home() {
                                 <Typography variant="h6" gutterBottom>
                                     Total Deposits: {totalDeposit}
                                 </Typography>
+                                {/* <Typography variant="h6" gutterBottom>
+                                    User Balance: {userBalance}
+                                </Typography>
+                                <Typography variant="h6" gutterBottom>
+                                    User Allowance: {userAllowance}
+                                </Typography> */}
                                 <div className='App'>
                                     <Box mt={2} sx={{
                                         maxWidth: '300px', // 50% of the parent element's width
@@ -246,7 +252,6 @@ export function Home() {
                                                 fullWidth
                                                 sx={{ marginTop: 1 }}
                                             />
-                                            {isApproved == true ? "sss" : "aaa"}
                                             {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={isBetted ? true : false} onClick={() => { handleClickBetApprove() }}>Bet</Button>}
                                             {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
                                         </FormControl>
