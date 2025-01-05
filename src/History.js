@@ -97,7 +97,7 @@ export function History() {
                 isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
                 isJoined: roundBettingInfo !== null,
                 winningValue: betFinishInfo ? betFinishInfo._winningValue : null,
-                currentRound: i == roundId
+                currentRound: i == _roundId
             });
         }
         // console.log(list);

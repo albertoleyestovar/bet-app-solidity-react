@@ -45,8 +45,8 @@ export function Home() {
     useEffect(() => {
         if (account) {
             const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
-                const _signer = ethProvider.getSigner();
-            setIsConnected(true);            
+            const _signer = ethProvider.getSigner();
+            setIsConnected(true);
             connectBetContract(_signer);
             connectTokenContract(_signer);
         }
@@ -109,7 +109,7 @@ export function Home() {
 
     useEffect(() => {
         // get user bet info
-        if (betContract && account) {            
+        if (betContract && account) {
             getBettingInformation();
         }
     }, [roundId]);
@@ -173,6 +173,10 @@ export function Home() {
                 console.error(error);
             }
         }
+    }
+
+    const clickOnMax = () => {
+        setBetAmount(userBalance);
     }
 
     const handleChangeBetAmount = (e) => {
@@ -301,7 +305,7 @@ export function Home() {
                                                 disabled={isBetted || isLoading}
                                                 sx={{ marginTop: 1 }}
                                             />
-                                            <label style={{ textAlign: 'right' }}>Max: {userBalance}</label>
+                                            <label style={{ textAlign: 'right' }} onClick={clickOnMax}>Max: {userBalance}</label>
                                             {betContract && <>
                                                 {!isBetted && <>
                                                     {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
@@ -310,7 +314,7 @@ export function Home() {
                                                 </>}
                                                 {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}
                                             </>}
-                                            {!betContract && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} disabled = {isLoading}
+                                            {!betContract && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} disabled={isLoading}
                                                 variant="contained" sx={{ marginTop: 1 }} onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>}
                                         </FormControl>
                                     </Box>
