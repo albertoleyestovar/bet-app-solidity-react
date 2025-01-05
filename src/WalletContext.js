@@ -25,7 +25,7 @@ export const WalletStateProvider = ({ children }) => {
                 const accounts = await provider.listAccounts();
 
                 if (accounts.length > 0) {
-                    setAccount(accounts[0]);
+                    setAccount(accounts[0].toLowerCase());
                     // setIsConnected(true);
 
                     // Store the account and chainId in localStorage

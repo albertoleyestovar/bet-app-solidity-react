@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper, TableBody } from '@mui/material';
+import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper, TableBody, CircularProgress } from '@mui/material';
 import { useWalletState } from "./WalletContext";
 import { getBetHistory } from './Graph';
 import { useNavigate } from 'react-router-dom';
@@ -142,7 +142,7 @@ export function History() {
 
     return (
         <div className='' style={{ maxWidth: "900px", marginLeft: "auto", marginRight: "auto" }}>
-            {isLoading && <LoadingSpinner />} {/* Show the loading spinner */}
+            {/* {isLoading && <LoadingSpinner />} Show the loading spinner */}
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
                 <Button variant="contained" sx={{ marginTop: 2, marginBottom: 1 }} onClick={() => { navigate('/') }}>Back</Button>
                 <Typography variant="h4" gutterBottom>
@@ -197,6 +197,13 @@ export function History() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
+                                                {isLoading && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={3} align="center">
+                                                            <CircularProgress />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
                                                 {filterList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r, index) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
                                                     const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
