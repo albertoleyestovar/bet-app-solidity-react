@@ -18,12 +18,13 @@ const multi = 1000000;
 export function Home() {
     const { isLoading, startLoading, stopLoading } = useLoading();
     const [isConnected, setIsConnected] = useState(false);
+    const [isGettingInfo, setIsGettingInfo] = useState(false);
     const [amountOverflow, setAmountOverflow] = useState(false);
     const { betContract, setBetContract, tokenContract, setTokenContract, account, setAccount, roundId, setRoundId } = useWalletState();
     const [betValue, setBetValue] = useState();
     const [betAmount, setBetAmount] = useState(0);
     const [userAllowance, setUserAllowance] = useState(0);
-    const [userBalance, setUserBalance] = useState(0);
+    const [userBalance, setUserBalance] = useState(null);
     const [isApproved, setIsApproved] = useState(false);
     const [canApprove, setCanApprove] = useState(false);
     const [numJoined, setNumJoined] = useState(0);
@@ -35,13 +36,25 @@ export function Home() {
         if (betContract && tokenContract) {
             setIsConnected(true);
             // get current round id
-            startLoading();
             betContract.currentRoundId().then((res) => {
-                stopLoading();
-                setRoundId(res.toString());
+                const _roundId = res.toString();
+                setRoundId(_roundId);
+                loadBettingInformations(_roundId);
             });
         }
     }, [betContract, tokenContract]);
+
+    const loadBettingInformations = async (_roundId) => {
+        startLoading();
+        setIsGettingInfo(true);
+        if (betContract && tokenContract) {
+            // get current round id
+            startLoading();
+            await getBettingInformation(_roundId);
+        }
+        setIsGettingInfo(false);
+        stopLoading();
+    }
 
     useEffect(() => {
         if (account) {
@@ -83,36 +96,33 @@ export function Home() {
         }
     }
 
-    const getBettingInformation = () => {
-        startLoading();
-        getBetInfo(roundId).then((res) => {
-            // console.log('bet info', res);
-            const betArr = res.betPlaceds;
-            const userBet = betArr.filter((b) => b._address === account);
-            setNumJoined(betArr.length);
-            let tBetAmount = 0;
-            betArr.map((b) => {
-                tBetAmount += parseInt(b._betAmount);
-            })
+    const getBettingInformation = async (_roundId) => {
+        const res = await getBetInfo(_roundId);
+        // console.log('bet info', res);
+        const betArr = res.betPlaceds;
+        const userBet = betArr.filter((b) => b._address === account);
+        setNumJoined(betArr.length);
+        let tBetAmount = 0;
+        betArr.map((b) => {
+            tBetAmount += parseInt(b._betAmount);
+        })
 
-            setTotalDeposit(tBetAmount / multi);
-            if (userBet.length) {
-                setBetValue(userBet[0]._betValue);
-                setBetAmount(parseFloat(parseInt(userBet[0]._betAmount) / multi));
-                setIsBetted(true);
-                setIsApproved(true);
-            }
-            getBalance();
-            getAllowance();
-            stopLoading();
-        });
+        setTotalDeposit(tBetAmount / multi);
+        if (userBet.length) {
+            setBetValue(userBet[0]._betValue);
+            setBetAmount(parseFloat(parseInt(userBet[0]._betAmount) / multi));
+            setIsBetted(true);
+            setIsApproved(true);
+        }
+        getBalance();
+        getAllowance();
     }
 
     useEffect(() => {
         // get user bet info
-        if (betContract && account) {
-            getBettingInformation();
-        }
+        // if (betContract && account) {
+        //     getBettingInformation();
+        // }
     }, [roundId]);
 
     const handleNetworkChanged = (networkId) => {
@@ -163,7 +173,7 @@ export function Home() {
                 const tx = await betContract.placeBet(betValue, parseInt(betAmount * multi));
                 await tx.wait();
                 stopLoading();
-                setTimeout(getBettingInformation(), 2000); //
+                setTimeout(getBettingInformation(roundId), 2000); //
                 setIsBetted(true);
                 setIsApproved(true);
                 const newBalance = userBalance - betAmount;
@@ -311,7 +321,7 @@ export function Home() {
                                                 {!isBetted && <>
                                                     {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
                                                     {isApproved && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} variant="contained" sx={{ marginTop: 1 }} disabled={(isLoading || (isBetted && !amountOverflow)) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
-                                                    {!isApproved && isConnected && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} variant="contained" sx={{ marginTop: 1 }} disabled={isLoading || !canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                                    {!isApproved && isConnected && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} variant="contained" sx={{ marginTop: 1 }} disabled={isLoading || !canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>{!isGettingInfo ? "Approve" : ""}</Button>}
                                                 </>}
                                                 {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}
                                             </>}
