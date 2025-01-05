@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Button, Typography, Card, CardContent, Grid, Box, Select, MenuItem, FormControl, InputLabel, TextField } from '@mui/material';
+import { Container, Button, Typography, Card, CardContent, Grid, Box, Select, MenuItem, FormControl, InputLabel, TextField, CircularProgress } from '@mui/material';
 import { ethers } from "ethers";
 import { useWalletState } from "./WalletContext";
 import { useNavigate } from 'react-router-dom';
@@ -242,7 +242,7 @@ export function Home() {
 
     return (
         <div className="">
-            {isLoading && <LoadingSpinner />} {/* Show the loading spinner */}
+            {/* {isLoading && <LoadingSpinner />} Show the loading spinner */}
             <Container maxWidth="md" sx={{ paddingTop: 4 }}>
                 <Typography variant="h3" align="center" gutterBottom>
                     Round Information
@@ -281,7 +281,7 @@ export function Home() {
                                                 value={betValue || ''}
                                                 onChange={(e) => { setBetValue(e.target.value) }}
                                                 label="Select a number"
-                                                disabled={isBetted}
+                                                disabled={isBetted || isLoading}
                                             >
                                                 {/* Options from 1 to 5 */}
                                                 {betValues.map((value) => (
@@ -297,19 +297,19 @@ export function Home() {
                                                 onChange={(e) => { handleChangeBetAmount(e); }}
                                                 variant="outlined"
                                                 fullWidth
-                                                disabled={isBetted}
+                                                disabled={isBetted || isLoading}
                                                 sx={{ marginTop: 1 }}
                                             />
                                             <label style={{ textAlign: 'right' }}>Max: {userBalance}</label>
                                             {betContract && <>
                                                 {!isBetted && <>
                                                     {amountOverflow && <label style={{ color: 'red' }}>Insufficient balance</label>}
-                                                    {isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={(isBetted && !amountOverflow) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
-                                                    {!isApproved && <Button variant="contained" sx={{ marginTop: 1 }} disabled={!canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
+                                                    {isApproved && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} variant="contained" sx={{ marginTop: 1 }} disabled={(isLoading || (isBetted && !amountOverflow)) ? true : false} onClick={() => { handleClickBetApprove() }}>Place Bet</Button>}
+                                                    {!isApproved && isConnected && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} variant="contained" sx={{ marginTop: 1 }} disabled={isLoading || !canApprove || !isConnected || amountOverflow ? true : false} onClick={() => { handleClickBetApprove() }}>Approve</Button>}
                                                 </>}
                                                 {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}
                                             </>}
-                                            {!betContract && <Button
+                                            {!betContract && <Button startIcon={isLoading ? <CircularProgress size={24} color="inherit" /> : null} disabled = {isLoading}
                                                 variant="contained" sx={{ marginTop: 1 }} onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>}
                                         </FormControl>
                                     </Box>

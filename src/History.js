@@ -52,9 +52,11 @@ export function History() {
 
     const getHistory = async () => {
         startLoading();
+        // console.log('account...', account);
         const res = await getBetHistory(account);
         stopLoading();
         const betPlaceds = res.betPlaceds;
+        // console.log(res);
         const claimedRewards = res.claimedRewards;
         const betRoundFinisheds = res.betRoundFinisheds;
         const list = [];
@@ -63,6 +65,7 @@ export function History() {
         else _roundId = roundId;
         for (let i = _roundId; i >= 1; i--) {
             const roundBettingInfo = betPlaceds.filter((b) => b._roundId == i && b._address == account)[0] || null;
+            // console.log(account, roundBettingInfo, i);
             const claimInfo = claimedRewards.filter((c) => c._roundId == i)[0] || null;
             const betFinishInfo = betRoundFinisheds.filter((c) => c._roundId == i)[0] || null;
 
@@ -87,8 +90,9 @@ export function History() {
                 winningValue: betFinishInfo ? betFinishInfo._winningValue : null,
                 currentRound: i == roundId
             });
-            setRoundList(list);
         }
+        // console.log(list);
+        setRoundList(list);
     }
 
     useEffect(() => {
