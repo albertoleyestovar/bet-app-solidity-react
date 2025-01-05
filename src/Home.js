@@ -165,7 +165,8 @@ export function Home() {
                 setTimeout(getBettingInformation(), 2000); //
                 setIsBetted(true);
                 setIsApproved(true);
-                setUserBalance(userBalance - betAmount);
+                const newBalance = userBalance - betAmount;
+                setUserBalance(newBalance);
 
             } catch (error) {
                 stopLoading();
@@ -229,7 +230,7 @@ export function Home() {
             try {
                 startLoading();
                 const tx = await tokenContract.approve(betContractAddress, parseInt(betAmount * multi));
-                tx.wait();
+                await tx.wait();
                 stopLoading();
                 setIsApproved(true);
                 // console.log(res);
