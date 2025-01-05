@@ -193,7 +193,7 @@ export function Home() {
     const handleChangeBetAmount = (e) => {
         // Allow only numbers or empty string
         const newValue = e.target.value;
-        if (newValue === '' || /^-?\d*\.?\d+$/.test(newValue)) {
+        if (newValue === '' || /^\d*(\.\d{0,6})?$/.test(newValue)) {
             setBetAmount(newValue);
         }
     }
