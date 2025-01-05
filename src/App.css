@@ -6,3 +6,14 @@
   width: 80%;
   padding-top: 100px;
 }
+
+@media (max-width: 500px) {
+  .f-r label {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .f-r .btn-disconnect {
+    float: right;
+  }
+}

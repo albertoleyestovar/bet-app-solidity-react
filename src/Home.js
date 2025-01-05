@@ -8,6 +8,7 @@ import tokenContractABI from './token-abi.json';
 import { getBetInfo } from './Graph';
 import { useLoading } from './LoadingContext'; // Import the useLoading hook
 import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
+import './App.css';
 
 const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
 const tokenContractAddress = "0x6cbc89936b3cb9a67241da63267a2c5454b43fe5";
@@ -176,7 +177,7 @@ export function Home() {
     }
 
     const clickOnMax = () => {
-        setBetAmount(userBalance);
+        if (!isBetted) setBetAmount(userBalance);
     }
 
     const handleChangeBetAmount = (e) => {
@@ -254,10 +255,10 @@ export function Home() {
                 </Typography>
                 <Grid container spacing={3} justifyContent="center">
                     <Grid item xs={12} sm={12} md={12}>
-                        <div style={{ textAlign: "right" }}>
+                        <div className="f-r" style={{ textAlign: "right" }}>
                             {account && <label>Account: {`${account.slice(0, 6)}...${account.slice(-4)}`}</label>}
-                            {isConnected && (<Button sx={{ mr: 2, ml: 2 }} variant="contained" onClick={() => { navigate('/history') }}>History</Button>)}
-                            {betContract && <Button
+                            {isConnected && (<Button className='btn-history' sx={{ mr: 2, ml: 2 }} variant="contained" onClick={() => { navigate('/history') }}>History</Button>)}
+                            {betContract && <Button className='btn-disconnect'
                                 variant="contained" onClick={handleClick}>Disconnect</Button>}
                         </div>
                         <Card variant="outlined" sx={{ mt: 2 }} style={{ textAlign: "center" }}>

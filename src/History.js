@@ -88,16 +88,20 @@ export function History() {
                     rewardAmount = calcRewardAmount(betPlaceds.filter((b) => b._roundId == i), roundBettingInfo._betAmount, betFinishInfo._winningValue);
                 }
             }
+            const totalDeposit = parseFloat(betPlaceds.filter((b) => b._roundId == i).reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0) / multi);
+            const numJoined = betPlaceds.filter((b) => b._roundId == i).length;
             list.push({
                 roundId: i,
-                betAmount: roundBettingInfo ? roundBettingInfo._betAmount : 0,
-                betValue: roundBettingInfo ? roundBettingInfo._betValue : 0,
+                betAmount: roundBettingInfo ? roundBettingInfo._betAmount : "-",
+                betValue: roundBettingInfo ? roundBettingInfo._betValue : "-",
                 isClaimed: rewardAmount > 0 ? (claimInfo ? true : false) : null,
                 rewardAmount,
                 isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
                 isJoined: roundBettingInfo !== null,
                 winningValue: betFinishInfo ? betFinishInfo._winningValue : null,
-                currentRound: i == _roundId
+                currentRound: i == _roundId,
+                totalDeposit,
+                numJoined
             });
         }
         // console.log(list);
@@ -221,8 +225,12 @@ export function History() {
                                                         <TableRow key={index}>
                                                             <TableCell>{r.roundId}</TableCell>
                                                             <TableCell align="left">
-                                                                Bet Amount: {parseFloat(r.betAmount / multi)}<br />
-                                                                Bet Value: {r.betValue}</TableCell>
+                                                                {r.isJoined &&
+                                                                    <>Bet Amount: {parseFloat(r.betAmount / multi)}<br />
+                                                                        Bet Value: {r.betValue}<br /></>}
+                                                                Total Deposits: {r.totalDeposit}<br />
+                                                                Joined: {r.numJoined} member(s)
+                                                            </TableCell>
                                                             <TableCell align="left">
                                                                 Reward Amount: {parseFloat(r.rewardAmount / multi)}<br />
                                                                 {r.winningValue && <>Winner Value: {r.winningValue}</>}
