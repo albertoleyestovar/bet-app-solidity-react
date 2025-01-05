@@ -21,7 +21,7 @@ export function History() {
     });
     const [roundList, setRoundList] = useState([]);
     const [filterList, setFilterList] = useState([]);
-    const { betContract, account, roundId } = useWalletState();
+    const { betContract, account, roundId, setRoundId } = useWalletState();
 
     const [totalPageCount, setTotalPageCount] = useState(0);
     const [pageIndex, setPageIndex] = useState(1);
@@ -58,7 +58,10 @@ export function History() {
         const claimedRewards = res.claimedRewards;
         const betRoundFinisheds = res.betRoundFinisheds;
         const list = [];
-        for (let i = 1; i <= roundId; i++) {
+        let _roundId = betRoundFinisheds.length;
+        if (!roundId) setRoundId(_roundId);
+        else _roundId = roundId;
+        for (let i = _roundId; i >= 1; i--) {
             const roundBettingInfo = betPlaceds.filter((b) => b._roundId == i && b._address == account)[0] || null;
             const claimInfo = claimedRewards.filter((c) => c._roundId == i)[0] || null;
             const betFinishInfo = betRoundFinisheds.filter((c) => c._roundId == i)[0] || null;
@@ -80,7 +83,9 @@ export function History() {
                 isClaimed: rewardAmount > 0 ? (claimInfo ? true : false) : null,
                 rewardAmount,
                 isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
-                isJoined: roundBettingInfo !== null
+                isJoined: roundBettingInfo !== null,
+                winningValue: betFinishInfo ? betFinishInfo._winningValue : null,
+                currentRound: i == roundId
             });
             setRoundList(list);
         }
@@ -91,10 +96,10 @@ export function History() {
     }, [filterList]);
 
     useEffect(() => {
-        if (betContract) {
+        if (account) {
             getHistory();
         }
-    }, []);
+    }, [account]);
 
     useEffect(() => {
         if (!checkedItems.notClaimed && !checkedItems.claimed && !checkedItems.joined) {
@@ -108,6 +113,7 @@ export function History() {
             return false;
         });
         setFilterList(list);
+        setPageIndex(1);
     }, [checkedItems]);
 
     useEffect(() => {
@@ -197,13 +203,17 @@ export function History() {
                                                             <TableCell align="left">
                                                                 Bet Amount: {parseFloat(r.betAmount / multi)}<br />
                                                                 Bet Value: {r.betValue}</TableCell>
-                                                            <TableCell align="left">Reward Amount: {parseFloat(r.rewardAmount / multi)}</TableCell>
+                                                            <TableCell align="left">
+                                                                Reward Amount: {parseFloat(r.rewardAmount / multi)}<br />
+                                                                {r.winningValue && <>Winner Value: {r.winningValue}</>}
+                                                            </TableCell>
                                                             <TableCell align="left">
                                                                 {allowClaim && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
                                                                 {r.isClaimed && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }} onClick={handleSubmit}>Claimed</Button>}
                                                                 {!r.isJoined && !isCurrentRound && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
                                                                 {!r.isJoined && isCurrentRound && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { navigate('/') }}>Join</Button>}
                                                                 {r.isLost && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Lost</Button>}
+                                                                {r.currentRound && r.isJoined && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>In Progress...</Button>}
                                                             </TableCell>
                                                         </TableRow>
                                                     )

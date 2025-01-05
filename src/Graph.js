@@ -1,7 +1,7 @@
 import { gql, GraphQLClient } from 'graphql-request';
 import axios from 'axios';
 
-const API_ENDPOINT = "https://19c7-146-185-26-150.ngrok-free.app";
+const API_ENDPOINT = "https://395f-146-185-26-150.ngrok-free.app";
 
 export const getBetInfo = async (_roundId) => {
     try {

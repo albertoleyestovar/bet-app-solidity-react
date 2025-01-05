@@ -43,6 +43,16 @@ export function Home() {
     }, [betContract, tokenContract]);
 
     useEffect(() => {
+        if (account) {
+            const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
+                const _signer = ethProvider.getSigner();
+            setIsConnected(true);            
+            connectBetContract(_signer);
+            connectTokenContract(_signer);
+        }
+    }, [account]);
+
+    useEffect(() => {
         // console.log(userAllowance);
         if (!betContract) return;
         if (!isBetted) {
@@ -99,7 +109,7 @@ export function Home() {
 
     useEffect(() => {
         // get user bet info
-        if (betContract && account) {
+        if (betContract && account) {            
             getBettingInformation();
         }
     }, [roundId]);
@@ -149,7 +159,8 @@ export function Home() {
         if (betContract) {
             try {
                 startLoading();
-                await betContract.placeBet(betValue, parseInt(betAmount * multi));
+                const tx = await betContract.placeBet(betValue, parseInt(betAmount * multi));
+                await tx.wait();
                 stopLoading();
                 setTimeout(getBettingInformation(), 2000); //
                 setIsBetted(true);
@@ -217,7 +228,8 @@ export function Home() {
         } else {
             try {
                 startLoading();
-                await tokenContract.approve(betContractAddress, parseInt(betAmount * multi));
+                const tx = await tokenContract.approve(betContractAddress, parseInt(betAmount * multi));
+                tx.wait();
                 stopLoading();
                 setIsApproved(true);
                 // console.log(res);
@@ -238,8 +250,10 @@ export function Home() {
                 <Grid container spacing={3} justifyContent="center">
                     <Grid item xs={12} sm={12} md={12}>
                         <div style={{ textAlign: "right" }}>
-                            {isConnected && (<Button sx={{ mr: 2 }} variant="contained" onClick={() => { navigate('/history') }}>History</Button>)}
-
+                            {account && <label>Account: {`${account.slice(0, 6)}...${account.slice(-4)}`}</label>}
+                            {isConnected && (<Button sx={{ mr: 2, ml: 2 }} variant="contained" onClick={() => { navigate('/history') }}>History</Button>)}
+                            {betContract && <Button
+                                variant="contained" onClick={handleClick}>Disconnect</Button>}
                         </div>
                         <Card variant="outlined" sx={{ mt: 2 }} style={{ textAlign: "center" }}>
                             <CardContent>
@@ -295,8 +309,8 @@ export function Home() {
                                                 </>}
                                                 {isBetted && <Button variant="contained" sx={{ marginTop: 1 }} disabled={true} >Betted</Button>}
                                             </>}
-                                            {!betContract && <Button 
-                                             variant="contained" sx={{ marginTop: 1 }} onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>}
+                                            {!betContract && <Button
+                                                variant="contained" sx={{ marginTop: 1 }} onClick={handleClick}>{isConnected ? "Disconnect" : "Connect"}</Button>}
                                         </FormControl>
                                     </Box>
                                 </div>
