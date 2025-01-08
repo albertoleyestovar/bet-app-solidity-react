@@ -173,7 +173,9 @@ export function Home() {
                 const tx = await betContract.placeBet(betValue, parseInt(betAmount * multi));
                 await tx.wait();
                 stopLoading();
-                setTimeout(getBettingInformation(roundId), 2000); //
+                setTimeout(async () => {
+                    await getBettingInformation(roundId);
+                }, 2000);
                 setIsBetted(true);
                 setIsApproved(true);
                 const newBalance = userBalance - betAmount;

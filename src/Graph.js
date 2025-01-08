@@ -1,7 +1,7 @@
 import { gql, GraphQLClient } from 'graphql-request';
 import axios from 'axios';
 
-const API_ENDPOINT = "https://6522-146-185-26-150.ngrok-free.app";
+const API_ENDPOINT = "https://bfdb-38-75-137-213.ngrok-free.app";
 
 export const getBetInfo = async (_roundId) => {
     try {
@@ -14,9 +14,9 @@ export const getBetInfo = async (_roundId) => {
     }
 }
 
-export const getBetHistory = async (_address) => {
-    const res = await axios.post(API_ENDPOINT + "/bet-history", {
-        address: _address
+export const getBetHistory = async (params) => {
+    const res = await axios.post(API_ENDPOINT + "/bet-round-history", {
+        address: params._address
     });
     // console.log(res.data);
     return res.data;

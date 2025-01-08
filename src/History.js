@@ -41,15 +41,22 @@ export function History() {
             try {
                 // console.log(betContract);
                 setIsClaiming(true);
+                let newFilterList = filterList.map((f) => {
+                    if (f.roundId == _roundId) f.isClaiming = true;
+                    else f.isClaiming = false;
+                    return f;
+                });
+                console.log(newFilterList);
+                setFilterList(newFilterList);
                 const tx = await betContract.onClaim(parseInt(_roundId));
                 await tx.wait();
-                const newRoundList = roundList.map((r) => {
+                newFilterList = filterList.map((r) => {
                     if (r.roundId == _roundId) {
                         r.isClaimed = true;
                     }
                     return r;
                 });
-                setRoundList(newRoundList);
+                setFilterList(newFilterList);
                 setIsClaiming(false);
             } catch (error) {
                 setIsClaiming(false);
@@ -235,8 +242,8 @@ export function History() {
                                                                 Reward Amount: {parseFloat(r.rewardAmount / multi)}<br />
                                                                 {r.winningValue && <>Winner Value: {r.winningValue}</>}
                                                             </TableCell>
-                                                            <TableCell align="left">
-                                                                {allowClaim && <Button startIcon={isClaiming ? <CircularProgress size={24} color="inherit" /> : null} disabled={isClaiming} variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
+                                                            <TableCell align="left">{r.isClaming}
+                                                                {allowClaim && <Button startIcon={r.isClaiming ? <CircularProgress size={24} color="inherit" /> : null} disabled={r.isClaiming} variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
                                                                 {r.isClaimed && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }} onClick={handleSubmit}>Claimed</Button>}
                                                                 {!r.isJoined && !isCurrentRound && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
                                                                 {!r.isJoined && isCurrentRound && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { navigate('/') }}>Join</Button>}
