@@ -1,7 +1,7 @@
 import { gql, GraphQLClient } from 'graphql-request';
 import axios from 'axios';
 
-const API_ENDPOINT = "https://2e9d-38-75-137-97.ngrok-free.app";
+const API_ENDPOINT = "https://ede7-38-75-137-97.ngrok-free.app";
 
 export const getCurrentRoundId = async () => {
     try {
@@ -24,7 +24,7 @@ export const getBetInfo = async (_roundId) => {
 
 export const getBetHistory = async (params) => {
     const res = await axios.post(API_ENDPOINT + "/bet-round-history", {
-        address: params._address,
+        address: params.address,
         pageIndex: params.pageIndex,
         pageSize: params.pageSize,
         isJoined: params.isJoined,

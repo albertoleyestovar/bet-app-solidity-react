@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper, TableBody, CircularProgress } from '@mui/material';
 import { useWalletState } from "./WalletContext";
-import { getBetHistory, getCurrentRoundId } from './Graph';
+import { getBetHistory } from './Graph';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
 import { useLoading } from './LoadingContext'; // Import the useLoading hook
-import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 import './App.css';
 
 const itemsPerPage = 5;
@@ -20,21 +19,11 @@ export function History() {
         joined: false,
     });
     const [roundList, setRoundList] = useState([]);
-    const [cRoundId, setCRoundId] = useState();
-    const { betContract, account, roundId, setRoundId } = useWalletState();
+    const { betContract, account, roundId } = useWalletState();
 
     const [totalPageCount, setTotalPageCount] = useState(0);
     const [pageIndex, setPageIndex] = useState(1);
     const navigate = useNavigate();
-
-    useEffect(() => {
-        // get current round Id
-        getCurrentRoundId().then((res) => {
-            console.log(res);
-            setCRoundId(parseInt(res));
-            setTotalPageCount(Math.floor((parseInt(parseInt(res)) + 1) / itemsPerPage));
-        })
-    }, []);
 
     const onClaim = async (_roundId) => {
         if (betContract) {
@@ -64,11 +53,12 @@ export function History() {
     }
 
     const getHistory = async () => {
-        if (!totalPageCount) return;
         startLoading();
         // console.log('account...', account);
+        if (!account) return;
+        setTotalPageCount(0);
         const res = await getBetHistory({
-            _address: account,
+            address: account,
             pageIndex,
             pageSize: 5,
             isJoined: checkedItems.joined,
@@ -76,53 +66,79 @@ export function History() {
             isUnclaimed: checkedItems.notClaimed
         });
         stopLoading();
-        console.log(res.userRounds);
+        // console.log(res.userRounds);
         const roundList = res.userRounds;
-        let rInfo = {};
+        const totalCount = res.totalCount;
+        const pageCount = Math.floor(totalCount / itemsPerPage + 1);
+        setTotalPageCount(pageCount);
+
         let rList = [];
-        const startIndex = (parseInt(cRoundId) + 1) - (pageIndex - 1) * itemsPerPage;
-        const endIndex = startIndex - itemsPerPage;
-        console.log(cRoundId, startIndex, endIndex);
-        for (let i = startIndex; i > endIndex; i--) {
-            rInfo.roundId = i;
-            rInfo.isCurrentRound = i != cRoundId;
-            const betInfo = roundList.filter(r => r._roundId == i)[0] || null;
-            if (betInfo) {
-                console.log(betInfo._rewardAmount);
-                rInfo.betAmount = parseInt(betInfo._betAmount) / multi;
-                rInfo.betValue = parseInt(betInfo._betValue) / multi;
-                rInfo.isClaimed = betInfo._isClaimed;
-                rInfo.rewardAmount = parseInt(betInfo._rewardAmount) / multi;
-                rInfo.isLost = betInfo && betInfo._winningValue != betInfo._betValue;
-                rInfo.isJoined = betInfo._isJoined;
-                rInfo.winningValue = betInfo._winningValue;
-                rInfo.totalDeposit = betInfo._totalDeposit;
-                rInfo.numJoined = betInfo._numJoined
-            } else {
-                rInfo = {
-                    betAmount: 0,
-                    betValue: 0,
-                    isClaimed: false,
-                    rewardAmount: 0,
-                    totalDeposit: 0,
-                    isLost: false,
+        if (!checkedItems.joined && !checkedItems.claimed && !checkedItems.notClaimed) {
+            const startIndex = (totalCount) - (pageIndex - 1) * itemsPerPage;
+            const endIndex = startIndex - itemsPerPage;
+            for (let i = startIndex; (i > endIndex && i > 0); i--) {
+                const betInfo = roundList.filter(r => r._roundId == i)[0] || null;
+                if (betInfo) {
+                    rList.push({
+                        roundId: i,
+                        betAmount: parseFloat(parseInt(betInfo._betAmount) / multi).toFixed(6),
+                        betValue: betInfo._betValue,
+                        isClaimed: betInfo._isClaimed,
+                        rewardAmount: betInfo._rewardAmount ? parseFloat(parseInt(betInfo._rewardAmount)) / multi : 0,
+                        isLost: i !== totalCount && betInfo._winningValue != betInfo._betValue,
+                        isJoined: betInfo._isJoined,
+                        winningValue: betInfo._winningValue,
+                        totalDeposit: parseFloat(betInfo._totalDeposit / multi),
+                        numJoined: betInfo._numJoined,
+                        isCurrentRound: i === totalCount,
+                    });
+                } else {
+                    rList.push({
+                        roundId: i,
+                        betAmount: 0,
+                        betValue: 0,
+                        isClaimed: null,
+                        rewardAmount: 0,
+                        isLost: null,
+                        isJoined: false,
+                        winningValue: Math.floor(Math.random() * (5)) + 1,
+                        totalDeposit: 0,
+                        numJoined: 0,
+                        isCurrentRound: i === totalCount
+                    });
                 }
             }
-            rList.push(rInfo);
+        } else {
+            roundList.map((betInfo) => {
+                rList.push({
+                    roundId: betInfo._roundId,
+                    betAmount: parseFloat(parseInt(betInfo._betAmount) / multi).toFixed(6),
+                    betValue: betInfo._betValue,
+                    isClaimed: betInfo._isClaimed,
+                    rewardAmount: parseFloat(parseInt(betInfo._rewardAmount)) / multi,
+                    isLost: betInfo._roundId != totalCount && betInfo._winningValue != betInfo._betValue,
+                    isJoined: betInfo._isJoined,
+                    winningValue: betInfo._winningValue,
+                    totalDeposit: parseFloat(betInfo._totalDeposit / multi),
+                    numJoined: betInfo._numJoined,
+                    isCurrentRound: betInfo._roundId == totalCount,
+                });
+            })
         }
         console.log(rList);
         setRoundList(rList);
     }
 
     useEffect(() => {
-        if (account && totalPageCount) {
+        if (account) {
             getHistory();
         }
-    }, [account, totalPageCount]);
+    }, [account]);
 
     useEffect(() => {
+        setRoundList([]);
         getHistory();
-    }, [checkedItems]);
+    }, [checkedItems, pageIndex]);
 
     // Handle page change
     const handlePageChange = (event, value) => {
@@ -147,7 +163,7 @@ export function History() {
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
                 <Button variant="contained" sx={{ marginTop: 2, marginBottom: 1 }} onClick={() => { navigate('/') }}>Back</Button>
                 <Typography variant="h4" gutterBottom>
-                    History Page {totalPageCount} {cRoundId}
+                    History Page
                 </Typography>
                 <Grid container spacing={3} justifyContent="center">
                     <Grid item xs={12} sm={12} md={12}>
@@ -205,31 +221,30 @@ export function History() {
                                                         </TableCell>
                                                     </TableRow>
                                                 )}
-                                                {roundList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r, index) => {
+                                                {roundList.map((r, index) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
                                                     const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
-                                                    const isCurrentRound = r.roundId == roundId;
                                                     return (
                                                         <TableRow key={index}>
                                                             <TableCell>{r.roundId}</TableCell>
                                                             <TableCell align="left">
                                                                 {r.isJoined &&
-                                                                    <>Bet Amount: {parseFloat(r.betAmount / multi)}<br />
+                                                                    <>Bet Amount: {parseFloat(r.betAmount)}<br />
                                                                         Bet Value: {r.betValue}<br /></>}
                                                                 Total Deposits: {r.totalDeposit}<br />
                                                                 Joined: {r.numJoined} member(s)
                                                             </TableCell>
                                                             <TableCell align="left">
-                                                                Reward Amount: {parseFloat(r.rewardAmount / multi)}<br />
+                                                                Reward Amount: {parseFloat(r.rewardAmount)}<br />
                                                                 {r.winningValue && <>Winner Value: {r.winningValue}</>}
                                                             </TableCell>
                                                             <TableCell align="left">{r.isClaming}
                                                                 {allowClaim && <Button startIcon={r.isClaiming ? <CircularProgress size={24} color="inherit" /> : null} disabled={r.isClaiming} variant="contained" sx={{ marginTop: 2 }} onClick={() => { onClaim(r.roundId) }}>Claim</Button>}
                                                                 {r.isClaimed && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }} onClick={handleSubmit}>Claimed</Button>}
-                                                                {!r.isJoined && !isCurrentRound && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
-                                                                {!r.isJoined && isCurrentRound && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { navigate('/') }}>Join</Button>}
+                                                                {!r.isJoined && !r.isCurrentRound && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Not Joined</Button>}
+                                                                {!r.isJoined && r.isCurrentRound && <Button variant="contained" sx={{ marginTop: 2 }} onClick={() => { navigate('/') }}>Join</Button>}
                                                                 {r.isLost && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>Lost</Button>}
-                                                                {r.currentRound && r.isJoined && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>In Progress...</Button>}
+                                                                {r.isCurrentRound && r.isJoined && <Button variant="contained" disabled={true} sx={{ marginTop: 2 }}>In Progress...</Button>}
                                                             </TableCell>
                                                         </TableRow>
                                                     )
