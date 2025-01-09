@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Button, Typography, Card, CardContent, Grid, Checkbox, FormControlLabel, FormGroup, Table, TableCell, TableContainer, TableHead, TableRow, Paper, TableBody, CircularProgress } from '@mui/material';
 import { useWalletState } from "./WalletContext";
-import { getBetHistory, getCurrentRoundId } from './Graph';
+import { getBetHistory } from './Graph';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '@mui/material/Pagination';
 import Stack from '@mui/material/Stack';
@@ -14,49 +14,52 @@ const multi = 1000000;
 
 export function History() {
     const { isLoading, startLoading, stopLoading } = useLoading();
+    const [isClaiming, setIsClaiming] = useState(false);
     const [checkedItems, setCheckedItems] = useState({
         notClaimed: false,
         claimed: false,
         joined: false,
     });
     const [roundList, setRoundList] = useState([]);
-    const [cRoundId, setCRoundId] = useState();
+    const [filterList, setFilterList] = useState([]);
     const { betContract, account, roundId, setRoundId } = useWalletState();
 
     const [totalPageCount, setTotalPageCount] = useState(0);
     const [pageIndex, setPageIndex] = useState(1);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        // get current round Id
-        getCurrentRoundId().then((res) => {
-            console.log(res);
-            setCRoundId(parseInt(res));
-            setTotalPageCount(Math.floor((parseInt(parseInt(res)) + 1) / itemsPerPage));
-        })
-    }, []);
+    const calcRewardAmount = (betPlaceds, betAmount, winValue) => {
+        const totalBetAmount = betPlaceds.reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0);
+        const totalWinAmount = betPlaceds.filter((b) => b._betValue == winValue).reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0);
+        const rewardAmount = totalWinAmount == 0 ? 0 : parseInt(parseInt(betAmount) * totalBetAmount * 0.95 / totalWinAmount);
+        return rewardAmount;
+
+    }
 
     const onClaim = async (_roundId) => {
         if (betContract) {
             try {
                 // console.log(betContract);
-
-                let newRoundList = roundList.map((f) => {
+                setIsClaiming(true);
+                let newFilterList = filterList.map((f) => {
                     if (f.roundId == _roundId) f.isClaiming = true;
                     else f.isClaiming = false;
                     return f;
                 });
-                console.log(newRoundList);
-                setRoundList(newRoundList);
+                console.log(newFilterList);
+                setFilterList(newFilterList);
                 const tx = await betContract.onClaim(parseInt(_roundId));
                 await tx.wait();
-                newRoundList = roundList.map((r) => {
+                newFilterList = filterList.map((r) => {
                     if (r.roundId == _roundId) {
                         r.isClaimed = true;
                     }
                     return r;
                 });
+                setFilterList(newFilterList);
+                setIsClaiming(false);
             } catch (error) {
+                setIsClaiming(false);
                 console.log(error);
                 // console.log(error.message.includes("ACTION_REJECTED"));
             }
@@ -64,66 +67,82 @@ export function History() {
     }
 
     const getHistory = async () => {
-        if (!totalPageCount) return;
         startLoading();
         // console.log('account...', account);
-        const res = await getBetHistory({
-            _address: account,
-            pageIndex,
-            pageSize: 5,
-            isJoined: checkedItems.joined,
-            isClaimed: checkedItems.claimed,
-            isUnclaimed: checkedItems.notClaimed
-        });
+        const res = await getBetHistory(account);
         stopLoading();
-        console.log(res.userRounds);
-        const roundList = res.userRounds;
-        let rInfo = {};
-        let rList = [];
-        const startIndex = (parseInt(cRoundId) + 1) - (pageIndex - 1) * itemsPerPage;
-        const endIndex = startIndex - itemsPerPage;
-        console.log(cRoundId, startIndex, endIndex);
-        for (let i = startIndex; i > endIndex; i--) {
-            rInfo.roundId = i;
-            rInfo.isCurrentRound = i != cRoundId;
-            const betInfo = roundList.filter(r => r._roundId == i)[0] || null;
-            if (betInfo) {
-                console.log(betInfo._rewardAmount);
-                rInfo.betAmount = parseInt(betInfo._betAmount) / multi;
-                rInfo.betValue = parseInt(betInfo._betValue) / multi;
-                rInfo.isClaimed = betInfo._isClaimed;
-                rInfo.rewardAmount = parseInt(betInfo._rewardAmount) / multi;
-                rInfo.isLost = betInfo && betInfo._winningValue != betInfo._betValue;
-                rInfo.isJoined = betInfo._isJoined;
-                rInfo.winningValue = betInfo._winningValue;
-                rInfo.totalDeposit = betInfo._totalDeposit;
-                rInfo.numJoined = betInfo._numJoined
-            } else {
-                rInfo = {
-                    betAmount: 0,
-                    betValue: 0,
-                    isClaimed: false,
-                    rewardAmount: 0,
-                    totalDeposit: 0,
-                    isLost: false,
+        const betPlaceds = res.betPlaceds;
+        // console.log(res);
+        const claimedRewards = res.claimedRewards;
+        const betRoundFinisheds = res.betRoundFinisheds;
+        const list = [];
+        let _roundId = betRoundFinisheds.length;
+        if (!roundId) setRoundId(_roundId);
+        else _roundId = roundId;
+        for (let i = _roundId; i >= 1; i--) {
+            const roundBettingInfo = betPlaceds.filter((b) => b._roundId == i && b._address == account)[0] || null;
+            // console.log(account, roundBettingInfo, i);
+            const claimInfo = claimedRewards.filter((c) => c._roundId == i)[0] || null;
+            const betFinishInfo = betRoundFinisheds.filter((c) => c._roundId == i)[0] || null;
+
+            // calc rewardAmount
+            let rewardAmount = 0;
+            if (!roundBettingInfo) rewardAmount = 0;
+            if (claimInfo) rewardAmount = claimInfo._rewardAmount;
+            if (roundBettingInfo && !claimInfo && betFinishInfo) {
+                if (betFinishInfo._winningValue != roundBettingInfo._betValue) rewardAmount = 0;
+                else {
+                    rewardAmount = calcRewardAmount(betPlaceds.filter((b) => b._roundId == i), roundBettingInfo._betAmount, betFinishInfo._winningValue);
                 }
             }
-            rList.push(rInfo);
+            const totalDeposit = parseFloat(betPlaceds.filter((b) => b._roundId == i).reduce((accumulator, currentValue) => accumulator + parseInt(currentValue._betAmount), 0) / multi);
+            const numJoined = betPlaceds.filter((b) => b._roundId == i).length;
+            list.push({
+                roundId: i,
+                betAmount: roundBettingInfo ? roundBettingInfo._betAmount : "-",
+                betValue: roundBettingInfo ? roundBettingInfo._betValue : "-",
+                isClaimed: rewardAmount > 0 ? (claimInfo ? true : false) : null,
+                rewardAmount,
+                isLost: roundBettingInfo && betFinishInfo && (roundBettingInfo._betValue != betFinishInfo._winningValue),
+                isJoined: roundBettingInfo !== null,
+                winningValue: betFinishInfo ? betFinishInfo._winningValue : null,
+                currentRound: i == _roundId,
+                totalDeposit,
+                numJoined
+            });
         }
-        console.log(rList);
-        setRoundList(rList);
+        // console.log(list);
+        setRoundList(list);
     }
 
     useEffect(() => {
-        if (account && totalPageCount) {
-            getHistory();
-        }
-    }, [account, totalPageCount]);
+        setTotalPageCount(Math.ceil(filterList.length / itemsPerPage));
+    }, [filterList]);
 
     useEffect(() => {
-        getHistory();
+        if (account) {
+            getHistory();
+        }
+    }, [account]);
+
+    useEffect(() => {
+        if (!checkedItems.notClaimed && !checkedItems.claimed && !checkedItems.joined) {
+            setFilterList(roundList);
+            return;
+        }
+        const list = roundList.filter((r) => {
+            if (checkedItems.notClaimed && r.isClaimed == false) return true;
+            if (checkedItems.claimed && r.isClaimed == true) return true;
+            if (checkedItems.joined && r.isJoined) return true;
+            return false;
+        });
+        setFilterList(list);
+        setPageIndex(1);
     }, [checkedItems]);
 
+    useEffect(() => {
+        setFilterList(roundList);
+    }, [roundList]);
     // Handle page change
     const handlePageChange = (event, value) => {
         setPageIndex(value);
@@ -147,7 +166,7 @@ export function History() {
             <Container maxWidth="xd" sx={{ paddingTop: 4 }}>
                 <Button variant="contained" sx={{ marginTop: 2, marginBottom: 1 }} onClick={() => { navigate('/') }}>Back</Button>
                 <Typography variant="h4" gutterBottom>
-                    History Page {totalPageCount} {cRoundId}
+                    History Page
                 </Typography>
                 <Grid container spacing={3} justifyContent="center">
                     <Grid item xs={12} sm={12} md={12}>
@@ -205,7 +224,7 @@ export function History() {
                                                         </TableCell>
                                                     </TableRow>
                                                 )}
-                                                {roundList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r, index) => {
+                                                {filterList.slice((pageIndex - 1) * itemsPerPage, pageIndex * itemsPerPage).map((r, index) => {
                                                     // const isClaimed = r.isJoined && r.isClaimed;
                                                     const allowClaim = r.isJoined && !r.isLost && !r.isClaimed && r.roundId != roundId;
                                                     const isCurrentRound = r.roundId == roundId;
