@@ -7,6 +7,7 @@ import betContractABI from './bet-abi.json';
 import tokenContractABI from './token-abi.json';
 import { getBetInfo } from './Graph';
 import { useLoading } from './LoadingContext'; // Import the useLoading hook
+import { LoadingSpinner } from './LoadingSpinner'; // Import the loading spinner
 import './App.css';
 
 const betContractAddress = "0x73194Fc3b18521078F3BbA6A605bd5ba64aBbe08";
@@ -39,9 +40,7 @@ export function Home() {
             betContract.currentRoundId().then((res) => {
                 const _roundId = res.toString();
                 setRoundId(_roundId);
-                // loadBettingInformations(_roundId);
-                getBalance();
-                getAllowance();
+                loadBettingInformations(_roundId);
             });
         }
     }, [betContract, tokenContract]);
@@ -132,6 +131,8 @@ export function Home() {
         setIsBetted(true);
         setIsApproved(true);
     }
+    getBalance();
+    getAllowance();
 }
 
 useEffect(() => {
@@ -276,6 +277,7 @@ async function handleClickBetApprove() {
 
 return (
     <div className="">
+        {/* {isLoading && <LoadingSpinner />} Show the loading spinner */}
         <Container maxWidth="md" sx={{ paddingTop: 4 }}>
             <Typography variant="h3" align="center" gutterBottom>
                 Round Information
